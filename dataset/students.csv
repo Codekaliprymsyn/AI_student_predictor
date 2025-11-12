@@ -1,0 +1,11 @@
+student_id,attendance,assignment_score,exam_score,participation,final_grade
+1,85,70,75,80,Pass
+2,60,50,55,65,Fail
+3,90,88,92,85,Pass
+4,40,30,45,50,Fail
+5,78,65,70,72,Pass
+6,82,68,66,70,Pass
+7,55,45,48,60,Fail
+8,95,92,96,90,Pass
+9,70,60,62,68,Pass
+10,45,35,40,55,Fail

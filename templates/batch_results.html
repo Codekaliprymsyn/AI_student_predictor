@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Prediction Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-light">
+    
+    <nav class="navbar navbar-dark bg-primary navbar-expand-lg">
+        <div class="container">
+            <span class="navbar-brand">🎓 AI Student Performance Predictor</span>
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">🏠 Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/dashboard">📊 Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/students">👥 Students</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/batch">📤 Batch Predict</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>✅ Batch Prediction Results</h2>
+            <div>
+                <a href="/batch/download" class="btn btn-success">📥 Download Results</a>
+                <a href="/batch" class="btn btn-secondary">📤 Upload Another</a>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-info shadow">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Total Processed</h6>
+                        <h2>{{ total }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success shadow">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Pass</h6>
+                        <h2>{{ passed }}</h2>
+                        <small>{{ "%.1f"|format((passed/total*100) if total > 0 else 0) }}%</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-danger shadow">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Fail</h6>
+                        <h2>{{ failed }}</h2>
+                        <small>{{ "%.1f"|format((failed/total*100) if total > 0 else 0) }}%</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning shadow">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">High Risk</h6>
+                        <h2>{{ high_risk }}</h2>
+                        <small>Need Attention</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Distribution -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card border-success shadow-sm">
+                    <div class="card-body text-center">
+                        <h6 class="text-success">🟢 Performing Well</h6>
+                        <h3>{{ performing_well }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-info shadow-sm">
+                    <div class="card-body text-center">
+                        <h6 class="text-info">🟡 Low Risk</h6>
+                        <h3>{{ low_risk }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-warning shadow-sm">
+                    <div class="card-body text-center">
+                        <h6 class="text-warning">🟠 Medium Risk</h6>
+                        <h3>{{ medium_risk }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-danger shadow-sm">
+                    <div class="card-body text-center">
+                        <h6 class="text-danger">🔴 High Risk</h6>
+                        <h3>{{ high_risk }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h6 class="text-center">Pass/Fail Distribution</h6>
+                        <canvas id="passFailChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h6 class="text-center">Risk Level Distribution</h6>
+                        <canvas id="riskChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="card shadow">
+            <div class="card-body">
+                <h4 class="card-title mb-3">Detailed Results</h4>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-sm">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Student ID</th>
+                                <th>Attendance</th>
+                                <th>Assignment</th>
+                                <th>Exam</th>
+                                <th>Participation</th>
+                                <th>Risk Level</th>
+                                <th>Risk Score</th>
+                                <th>Prediction</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in results %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td><strong>{{ r.student_id }}</strong></td>
+                                <td>{{ r.attendance }}%</td>
+                                <td>{{ r.assignment_score }}</td>
+                                <td>{{ r.exam_score }}</td>
+                                <td>{{ r.participation }}%</td>
+                                <td>
+                                    {% if r.risk_level == 'Performing Well' %}
+                                    <span class="badge bg-success">🟢 {{ r.risk_level }}</span>
+                                    {% elif r.risk_level == 'Low Risk' %}
+                                    <span class="badge bg-info">🟡 {{ r.risk_level }}</span>
+                                    {% elif r.risk_level == 'Medium Risk' %}
+                                    <span class="badge bg-warning">🟠 {{ r.risk_level }}</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">🔴 {{ r.risk_level }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ r.risk_score }}%</td>
+                                <td>
+                                    {% if r.prediction == 'Pass' %}
+                                    <span class="badge bg-success">✅ Pass</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">❌ Fail</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pass/Fail Chart
+        const passFailCtx = document.getElementById('passFailChart').getContext('2d');
+        new Chart(passFailCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Pass', 'Fail'],
+                datasets: [{
+                    data: [{{ passed }}, {{ failed }}],
+                    backgroundColor: ['#28a745', '#dc3545']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // Risk Level Chart
+        const riskCtx = document.getElementById('riskChart').getContext('2d');
+        new Chart(riskCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Performing Well', 'Low Risk', 'Medium Risk', 'High Risk'],
+                datasets: [{
+                    data: [{{ performing_well }}, {{ low_risk }}, {{ medium_risk }}, {{ high_risk }}],
+                    backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-light">
+    
+    <nav class="navbar navbar-dark bg-primary navbar-expand-lg">
+        <div class="container">
+            <span class="navbar-brand">🎓 My Academic Progress</span>
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link active" href="/student/dashboard">📊 My Dashboard</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        👤 {{ current_user.name }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/logout">🚪 Logout</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h2 class="mb-4">Welcome back, {{ current_user.name }}! 👋</h2>
+
+        {% if latest_entry %}
+        <!-- Current Status Card -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow border-0">
+                    <div class="card-body">
+                        <h4 class="card-title">📊 Current Status (Week {{ latest_entry.week_number }})</h4>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h6 class="text-muted">Overall Score</h6>
+                                    <h2>{{ "%.1f"|format(latest_entry.overall_score) }}%</h2>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h6 class="text-muted">Attendance</h6>
+                                    <h2>{{ "%.0f"|format(latest_entry.attendance_percentage) }}%</h2>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h6 class="text-muted">Participation</h6>
+                                    <h2>{{ "%.0f"|format(latest_entry.participation_score) }}%</h2>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h6 class="text-muted">Risk Level</h6>
+                                    {% if latest_entry.risk_level == 'Performing Well' %}
+                                    <h3><span class="badge bg-success">🟢 {{ latest_entry.risk_level }}</span></h3>
+                                    {% elif latest_entry.risk_level == 'Low Risk' %}
+                                    <h3><span class="badge bg-info">🟡 {{ latest_entry.risk_level }}</span></h3>
+                                    {% elif latest_entry.risk_level == 'Medium Risk' %}
+                                    <h3><span class="badge bg-warning">🟠 {{ latest_entry.risk_level }}</span></h3>
+                                    {% else %}
+                                    <h3><span class="badge bg-danger">🔴 {{ latest_entry.risk_level }}</span></h3>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subject Performance -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h5 class="card-title">📚 Subject Performance</h5>
+                        <hr>
+                        <div class="row">
+                            {% for tp in latest_entry.topic_performances %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card {% if tp.score >= 70 %}border-success{% elif tp.score >= 50 %}border-warning{% else %}border-danger{% endif %}">
+                                    <div class="card-body">
+                                        <h6>{{ tp.subject.name }}</h6>
+                                        <div class="progress" style="height: 25px;">
+                                            <div class="progress-bar {% if tp.score >= 70 %}bg-success{% elif tp.score >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                 style="width: {{ tp.score }}%">
+                                                {{ "%.0f"|format(tp.score) }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        {% if recommendations %}
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow border-warning">
+                    <div class="card-header bg-warning">
+                        <h5 class="mb-0">💡 Personalized Recommendations for You</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for rec in recommendations %}
+                        <div class="alert alert-{% if rec.priority == 'high' %}danger{% elif rec.priority == 'medium' %}warning{% else %}info{% endif %} mb-2">
+                            <strong>{% if rec.subject %}{{ rec.subject.name }}{% else %}General{% endif %}:</strong> {{ rec.recommendation_text }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Progress Timeline -->
+        {% if progress_entries|length > 1 %}
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h5 class="card-title">📈 My Progress Over Time</h5>
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- No Progress Yet -->
+        <div class="alert alert-info text-center">
+            <h4>No progress entries yet!</h4>
+            <p>Your lecturers will add your progress evaluations throughout the semester. Check back soon!</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if progress_entries|length > 1 %}
+    <script>
+        const ctx = document.getElementById('progressChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [{% for entry in progress_entries|reverse %}'Week {{ entry.week_number }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Overall Score',
+                    data: [{% for entry in progress_entries|reverse %}{{ entry.overall_score }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+    </script>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

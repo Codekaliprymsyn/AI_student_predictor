@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Student</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    
+<nav class="navbar navbar-dark bg-primary navbar-expand-lg">
+    <div class="container">
+        <span class="navbar-brand">🎓 AI Student Performance Predictor</span>
+        <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="/">🏠 Home</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/dashboard">📊 Dashboard</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/students">👥 Students</a>
+            </li>
+            {% if current_user.role == 'admin' %}
+            <li class="nav-item">
+                <a class="nav-link" href="/batch">📤 Batch Predict</a>
+            </li>
+            {% endif %}
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                    👤 {{ current_user.username }} ({{ current_user.role|title }})
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="/logout">🚪 Logout</a></li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+</nav>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h2 class="card-title text-center mb-4">✏️ Edit Student</h2>
+                        
+                        {% if success %}
+                        <div class="alert alert-success">
+                            ✅ Student updated successfully!
+                        </div>
+                        {% endif %}
+
+                        {% if error %}
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> {{ error }}
+                        </div>
+                        {% endif %}
+
+                        <form method="POST" action="/students/edit/{{ student.id }}">
+                            <div class="mb-3">
+                                <label class="form-label">Student ID *</label>
+                                <input type="text" class="form-control" name="student_id" 
+                                       value="{{ student.student_id }}" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" name="name" 
+                                       value="{{ student.name }}" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" 
+                                       value="{{ student.email if student.email else '' }}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Course</label>
+                                <select class="form-control" name="course">
+                                    <option value="">-- Select Course --</option>
+                                    <option value="BAC" {% if student.course == 'BAC' %}selected{% endif %}>Bachelor of Science in Applied Computing (BAC)</option>
+                                    <option value="BSC-IT" {% if student.course == 'BSC-IT' %}selected{% endif %}>Bachelor of Science in Information Technology</option>
+                                    <option value="BSD" {% if student.course == 'BSD' %}selected{% endif %}>Bachelor of Science in Software Development</option>
+                                    <option value="BBIT" {% if student.course == 'BBIT' %}selected{% endif %}>Bachelor of Business and Information Technology</option>
+                                    <option value="BISF" {% if student.course == 'BISF' %}selected{% endif %}>Bachelor of Science in Information Security and Forensics</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Year of Study</label>
+                                <select class="form-control" name="year_of_study">
+                                    <option value="">-- Select Year --</option>
+                                    <option value="Year 1" {% if student.year_of_study == 'Year 1' %}selected{% endif %}>Year 1</option>
+                                    <option value="Year 2" {% if student.year_of_study == 'Year 2' %}selected{% endif %}>Year 2</option>
+                                    <option value="Year 3" {% if student.year_of_study == 'Year 3' %}selected{% endif %}>Year 3</option>
+                                    <option value="Year 4" {% if student.year_of_study == 'Year 4' %}selected{% endif %}>Year 4</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-warning w-100">Update Student</button>
+                            <a href="/students" class="btn btn-secondary w-100 mt-2">Cancel</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

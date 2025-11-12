@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Students</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    
+    <nav class="navbar navbar-dark bg-primary navbar-expand-lg">
+        <div class="container">
+            <span class="navbar-brand">🎓 Student Performance Tracker</span>
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">🏠 Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/students">👥 Students</a>
+                </li>
+                {% if current_user.role == 'admin' %}
+                <li class="nav-item">
+                    <a class="nav-link" href="/subjects">📚 Subjects</a>
+                </li>
+                {% endif %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        👤 {{ current_user.username }} ({{ current_user.role|title }})
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/logout">🚪 Logout</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h2 class="mb-4">👥 All Students</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="card shadow">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Course</th>
+                                <th>Year</th>
+                                <th>Latest Status</th>
+                                <th>Risk Level</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in student_data %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td><strong>{{ data.student.student_id }}</strong></td>
+                                <td>{{ data.student.name }}</td>
+                                <td>{{ data.student.course }}</td>
+                                <td>{{ data.student.year_of_study }}</td>
+                                <td>
+                                    {% if data.latest_progress %}
+                                    Week {{ data.latest_progress.week_number }}<br>
+                                    <small class="text-muted">Score: {{ "%.1f"|format(data.latest_progress.overall_score) }}%</small>
+                                    {% else %}
+                                    <span class="text-muted">No entries</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if data.latest_progress %}
+                                        {% if data.latest_progress.risk_level == 'Performing Well' %}
+                                        <span class="badge bg-success">🟢 {{ data.latest_progress.risk_level }}</span>
+                                        {% elif data.latest_progress.risk_level == 'Low Risk' %}
+                                        <span class="badge bg-info">🟡 {{ data.latest_progress.risk_level }}</span>
+                                        {% elif data.latest_progress.risk_level == 'Medium Risk' %}
+                                        <span class="badge bg-warning">🟠 {{ data.latest_progress.risk_level }}</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">🔴 {{ data.latest_progress.risk_level }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                    <span class="badge bg-secondary">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="/student/{{ data.student.id }}" class="btn btn-sm btn-info">👁️ View</a>
+                                    <a href="/progress/add/{{ data.student.id }}" class="btn btn-sm btn-primary">➕ Add Progress</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if not student_data %}
+                <div class="alert alert-info text-center">
+                    No students registered yet. Students need to register with role "Student".
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
