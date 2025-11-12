@@ -7,10 +7,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import pandas as pd
 import io
+import os
 
 # Create Flask app
 app = Flask(__name__)
-import os
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-this-in-production')
 
 # Configure database (SQLite file)
@@ -22,6 +22,34 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+# Initialize database on startup
+@app.before_request
+def init_db():
+    if not hasattr(app, 'db_initialized'):
+        with app.app_context():
+            db.create_all()
+            
+            # Create default admin if doesn't exist
+            if not User.query.filter_by(username='admin').first():
+                admin = User(username='admin', email='admin@example.com', role='admin', name='Administrator')
+                admin.set_password('admin123')
+                db.session.add(admin)
+                db.session.commit()
+            
+            # Create default subjects if none exist
+            if Subject.query.count() == 0:
+                default_subjects = [
+                    Subject(name='Python Programming', code='CS101', description='Introduction to Python'),
+                    Subject(name='Database Systems', code='CS201', description='SQL and Database Design'),
+                    Subject(name='Web Development', code='CS202', description='HTML, CSS, JavaScript'),
+                    Subject(name='Data Structures', code='CS301', description='Algorithms and Data Structures'),
+                ]
+                for subject in default_subjects:
+                    db.session.add(subject)
+                db.session.commit()
+            
+            app.db_initialized = True
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -448,30 +476,5 @@ def delete_subject(id):
     flash('Subject deleted', 'success')
     return redirect(url_for('manage_subjects'))
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        
-        # Create default admin
-        if not User.query.filter_by(username='admin').first():
-            admin = User(username='admin', email='admin@example.com', role='admin', name='Administrator')
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-            print("Default admin created: username='admin', password='admin123'")
-        
-        # Create default subjects if none exist
-        if Subject.query.count() == 0:
-            default_subjects = [
-                Subject(name='Python Programming', code='CS101', description='Introduction to Python'),
-                Subject(name='Database Systems', code='CS201', description='SQL and Database Design'),
-                Subject(name='Web Development', code='CS202', description='HTML, CSS, JavaScript'),
-                Subject(name='Data Structures', code='CS301', description='Algorithms and Data Structures'),
-            ]
-            for subject in default_subjects:
-                db.session.add(subject)
-            db.session.commit()
-            print("Default subjects created")
-    
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
