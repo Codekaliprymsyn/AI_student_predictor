@@ -476,5 +476,40 @@ def delete_subject(id):
     flash('Subject deleted', 'success')
     return redirect(url_for('manage_subjects'))
 
+# ============ DELETE STUDENT (Admin/Lecturer) ============
+
+@app.route('/student/delete/<int:student_id>')
+@login_required
+def delete_student(student_id):
+    if current_user.role not in ['admin', 'lecturer']:
+        flash('Access denied', 'danger')
+        return redirect(url_for('home'))
+    
+    student = User.query.filter_by(id=student_id, role='student').first_or_404()
+    
+    try:
+        # Delete all related progress entries and their data
+        progress_entries = ProgressEntry.query.filter_by(student_user_id=student_id).all()
+        
+        for entry in progress_entries:
+            # Delete recommendations
+            Recommendation.query.filter_by(progress_entry_id=entry.id).delete()
+            # Delete topic performances
+            TopicPerformance.query.filter_by(progress_entry_id=entry.id).delete()
+            # Delete progress entry
+            db.session.delete(entry)
+        
+        # Delete the student
+        student_name = student.name
+        db.session.delete(student)
+        db.session.commit()
+        
+        flash(f'Student {student_name} and all related data deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting student: {str(e)}', 'danger')
+    
+    return redirect(url_for('view_students'))
+
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))

@@ -99,6 +99,11 @@
                                 <td>
                                     <a href="/student/{{ data.student.id }}" class="btn btn-sm btn-info">👁️ View</a>
                                     <a href="/progress/add/{{ data.student.id }}" class="btn btn-sm btn-primary">➕ Add Progress</a>
+                                    <a href="/student/delete/{{ data.student.id }}" 
+                                       class="btn btn-sm btn-danger"
+                                       onclick="return confirm('⚠️ Are you sure you want to delete {{ data.student.name }}?\n\nThis will permanently delete:\n- Student account\n- All progress entries\n- All recommendations\n- All subject performances\n\nThis action CANNOT be undone!')">
+                                        🗑️ Delete
+                                    </a>
                                 </td>
                             </tr>
                             {% endfor %}
