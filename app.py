@@ -3,7 +3,9 @@ import joblib
 import numpy as np
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from datetime import datetime
 import pandas as pd
 import io
@@ -17,6 +19,18 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///predictions.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+# Configure Flask-Mail
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
+mail = Mail(app)
+
+# Token serializer for password reset
+serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -282,6 +296,108 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+# ============ PASSWORD RESET ROUTES ============
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    
+    if request.method == 'POST':
+        email = request.form['email']
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            # Generate reset token
+            token = serializer.dumps(user.email, salt='password-reset-salt')
+            
+            # Create reset URL
+            reset_url = url_for('reset_password', token=token, _external=True)
+            
+            # Send email
+            try:
+                msg = Message(
+                    'Password Reset Request - Student Performance Tracker',
+                    recipients=[user.email]
+                )
+                msg.html = f'''
+                <html>
+                <body style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2>Password Reset Request</h2>
+                    <p>Hi {user.name or user.username},</p>
+                    <p>You requested to reset your password for the Student Performance Tracker.</p>
+                    <p>Click the button below to reset your password:</p>
+                    <p style="margin: 30px 0;">
+                        <a href="{reset_url}" 
+                           style="background-color: #007bff; color: white; padding: 12px 24px; 
+                                  text-decoration: none; border-radius: 5px; display: inline-block;">
+                            Reset Password
+                        </a>
+                    </p>
+                    <p>Or copy and paste this link into your browser:</p>
+                    <p style="color: #666; word-break: break-all;">{reset_url}</p>
+                    <p><strong>This link will expire in 1 hour.</strong></p>
+                    <p>If you didn't request this, please ignore this email.</p>
+                    <hr style="margin: 30px 0;">
+                    <p style="color: #999; font-size: 12px;">
+                        Student Performance Tracker<br>
+                        This is an automated email, please do not reply.
+                    </p>
+                </body>
+                </html>
+                '''
+                mail.send(msg)
+                flash('Password reset instructions have been sent to your email!', 'success')
+            except Exception as e:
+                flash(f'Error sending email: {str(e)}. Please contact administrator.', 'danger')
+        else:
+            # Don't reveal if email exists or not (security)
+            flash('If that email exists, password reset instructions have been sent!', 'info')
+        
+        return redirect(url_for('login'))
+    
+    return render_template('forgot_password.html')
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    
+    try:
+        # Verify token (valid for 1 hour)
+        email = serializer.loads(token, salt='password-reset-salt', max_age=3600)
+    except SignatureExpired:
+        flash('The password reset link has expired. Please request a new one.', 'danger')
+        return redirect(url_for('forgot_password'))
+    except BadSignature:
+        flash('Invalid password reset link.', 'danger')
+        return redirect(url_for('forgot_password'))
+    
+    if request.method == 'POST':
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        
+        if password != confirm_password:
+            flash('Passwords do not match!', 'danger')
+            return render_template('reset_password.html', token=token)
+        
+        if len(password) < 6:
+            flash('Password must be at least 6 characters long!', 'danger')
+            return render_template('reset_password.html', token=token)
+        
+        # Update password
+        user = User.query.filter_by(email=email).first()
+        if user:
+            user.set_password(password)
+            db.session.commit()
+            flash('Your password has been reset successfully! You can now login.', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash('User not found.', 'danger')
+            return redirect(url_for('forgot_password'))
+    
+    return render_template('reset_password.html', token=token)
 
 # ============ MAIN ROUTES ============
 
