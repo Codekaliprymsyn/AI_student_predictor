@@ -10,7 +10,6 @@ from datetime import datetime
 import pandas as pd
 import io
 import os
-
 # Create Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-this-in-production')
